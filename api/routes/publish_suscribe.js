@@ -1,17 +1,43 @@
 const express = require('express')
 const router = express.Router()
 
+const amqp = require('amqplib')
+require('dotenv').config()
+
+//cree la conexion con el rabbitmq desplegado en ec2 la ip es 18.204.160.57 (toda la info viene en .env)
+
+const hostname = process.env.HOST || 'localhost'
+const protocol = process.env.PROTOCOL
+const username = process.env.USERNAME
+const password = process.env.PASSWORD
+const queue = process.env.QUEUE
+
+
+const rabbitSettings = {
+  protocol: protocol,
+  hostname: hostname,
+  username: username,
+  password: password,
+  vhost: '/'
+}
+
 const pool = require('../db/connection')
 
-//Conexion
-const connectRabbitMQ = async () => {
-    const connection = await amqp.connect('amqp://localhost');
-    const channel = await connection.createChannel();
-  
-    const queueName = 'foodOrders';
-    await channel.assertQueue(queueName);
-  
-    return channel;
+//Conexion y mandar a una queue
+async function connect(message) {
+  try {
+      const conn = await amqp.connect(rabbitSettings)
+      console.log("*Conectado*")
+
+      const channel = await conn.createChannel();
+
+      channel.sendToQueue(queue, Buffer.from(message))
+
+
+  }
+  catch (error){
+      console.log('Erro =>', error)
+  }
 }
 
 
